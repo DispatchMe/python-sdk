@@ -16,5 +16,6 @@ setup(
     url='https://github.com/DispatchMe/python-sdk',
     packages=['dispatchsdk'],
     platforms='ANY',
+    python_requires='>=3',
     requires=['requests', 'urllib3']
 )

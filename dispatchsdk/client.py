@@ -3,13 +3,13 @@ import json
 import urllib
 
 from .errors import ValidationError, RequestError
-
+from .hmac import get_hmac_auth_headers
 
 class Client:
 	"""
 	client connects to the Dispatch platform using your client credentials.
 	"""
-	def __init__(self, client_id='', client_secret='', username=None, password=None, api_url="https://api.dispatch.me"):
+	def __init__(self, client_id='', client_secret='', username=None, password=None, api_url="https://api.dispatch.me", auth_mode='bearer', hmac_public_key=None, hmac_secret_key=None):
 		"""
 		Construct a new client
 
@@ -18,6 +18,9 @@ class Client:
 		:param username: Provide if you are doing an organization-level integration. Leave blank for job sources
 		:param password: Provide if you are doing an organization-level integration. Leave blank for job sources
 		:param api_url: URL for the API. Defaults to production but you can change this to the sandbox environment for testing.
+		:param auth_mode: "bearer" or "hmac"
+		:param hmac_public_key
+		:param hmac_secret_key
 		"""
 		self.client_id = client_id
 		self.client_secret = client_secret
@@ -29,10 +32,16 @@ class Client:
 			'Content-Type': 'application/json',
 			'Accept': 'application/json'
 		})
-		self.__bearer_token = None
+		self.__auth_mode = auth_mode
 
-	def __uri(self, path, query=None, files_api=False):
-		full = self.api_url + path
+		if auth_mode == 'hmac':
+			self.__hmac_public_key = hmac_public_key
+			self.__hmac_secret_key = hmac_secret_key
+		else:
+			self.__bearer_token = None
+
+	def __uri(self, path, query=None):
+		full = path
 
 		if query is not None:
 			full_query = {}
@@ -57,7 +66,10 @@ class Client:
 		else:
 			request_body['grant_type'] = 'client_credentials'
 
-		response = requests.post(self.__uri('/v3/oauth/token'), request_body)
+		headers = {
+			'Content-Type': 'application/json'
+		}
+		response = requests.post(self.__uri('/v3/oauth/token'), headers=headers, data=json.dumps(request_body))
 
 		self.__check_error(response)
 
@@ -80,8 +92,10 @@ class Client:
 		raise RequestError(response.reason, response.status_code)
 
 	def __do_request(self, method, uri, body=None, files=None, query=None, in_retry=False, parse_response=True):
-		if self.__bearer_token == None:
-			self.__load_bearer_token()
+
+		if self.__auth_mode is 'bearer':
+			if self.__bearer_token is None:
+				self.__load_bearer_token()
 
 		payload = None
 		if body is not None:
@@ -90,14 +104,22 @@ class Client:
 		full_uri = self.__uri(uri, query)
 
 		func = getattr(self.__session, method)
-		resp = func(full_uri, data=payload, files=files)
+
+		if self.__auth_mode is 'hmac':
+			headers = get_hmac_auth_headers(self.__hmac_public_key, self.__hmac_secret_key, 'application/json', payload, full_uri)
+		else:
+			headers = None
+
+		print(headers)
+		request_url = self.api_url + full_uri
+		resp = func(request_url, data=payload, files=files, headers=headers)
 
 		# If we get a 401, grab a new bearer token and retry the request ONCE.
 		# This should only happen when a bearer token expires.
-		if resp.status_code is 401 and not in_retry:
+		if resp.status_code is 401 and self.__auth_mode is 'bearer' and not in_retry:
 			self.__load_bearer_token()
 
-			return self.__do_request(method, uri, body=body, query=query, in_retry=True, parse_response=parse_response)
+			return self.__do_request(method, request_url, body=body, query=query, in_retry=True, parse_response=parse_response)
 
 		self.__check_error(resp)
 
@@ -119,6 +141,8 @@ class Client:
 		return self.__do_request('post', endpoint, body=attrs)
 	def update(self, endpoint, id, attrs):
 		return self.__do_request('patch', endpoint + '/{}'.format(id), body=attrs)
+	def delete(self, endpoint, id):
+		return self.__do_request('delete', endpoint + '/{}'.format(id))
 
 	def create_appointment(self, attrs={}):
 		"""
@@ -190,7 +214,7 @@ class Client:
 		else:
 			raise ValueError('Must provide either path or fileobj to upload a photo')
 
-		response = self.__do_request('POST', '/v3/datafiles', files=files)
+		response = self.__do_request('post', '/v3/datafiles', files=files)
 		if 'uid' not in response:
 			raise UserWarning('No uid property in upload response')
 
@@ -316,6 +340,14 @@ class Client:
 		:return: Customer object
 		"""
 		return self.get('/v3/customers', id)
+
+	def delete_customer(self, id):
+		"""
+		Delete a single customer by ID
+
+		:param id: ID of the customer
+		"""
+		return self.delete('/v3/customers', id)
 
 	def create_job(self, organization_id=None, attrs={}):
 		"""
