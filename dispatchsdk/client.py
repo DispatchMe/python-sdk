@@ -69,7 +69,7 @@ class Client:
 		headers = {
 			'Content-Type': 'application/json'
 		}
-		response = requests.post(self.__uri('/v3/oauth/token'), headers=headers, data=json.dumps(request_body))
+		response = requests.post(self.api_url + self.__uri('/v3/oauth/token'), headers=headers, data=json.dumps(request_body))
 
 		self.__check_error(response)
 
@@ -110,7 +110,6 @@ class Client:
 		else:
 			headers = None
 
-		print(headers)
 		request_url = self.api_url + full_uri
 		resp = func(request_url, data=payload, files=files, headers=headers)
 
