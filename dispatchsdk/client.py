@@ -1,6 +1,6 @@
 import requests
 import json
-import urllib
+from urllib.parse import urlencode, quote_plus
 
 from .errors import ValidationError, RequestError
 from .hmac import get_hmac_auth_headers
@@ -47,7 +47,7 @@ class Client:
 			full_query = {}
 			for k in query:
 				full_query['filter[{}]'.format(k)] = query[k]
-			full = full + '?' + urllib.urlencode(full_query)
+			full = full + '?' + urlencode(full_query, quote_via=quote_plus)
 		return full
 
 	def __load_bearer_token(self):
@@ -87,8 +87,11 @@ class Client:
 		# Special error type for validation errors
 		if response.status_code == 422:
 			body = response.json()
+			print(body)
 			raise ValidationError("Validation failed", body["errors"])
 
+		print(response.text)
+		print(response.status_code)
 		raise RequestError(response.reason, response.status_code)
 
 	def __do_request(self, method, uri, body=None, files=None, query=None, in_retry=False, parse_response=True):
@@ -113,6 +116,8 @@ class Client:
 		request_url = self.api_url + full_uri
 		resp = func(request_url, data=payload, files=files, headers=headers)
 
+		print(request_url)
+		print(headers)
 		# If we get a 401, grab a new bearer token and retry the request ONCE.
 		# This should only happen when a bearer token expires.
 		if resp.status_code is 401 and self.__auth_mode is 'bearer' and not in_retry:
@@ -440,7 +445,7 @@ class Client:
 		:param id: ID of the organization
 		:return: Organization object
 		"""
-		return self.get('/v3/organizations', id)
+		return self.get('/v1/organizations', id)
 
 	def get_surveys_for_job(self, job_id):
 		"""
