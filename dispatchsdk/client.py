@@ -5,6 +5,16 @@ from urllib.parse import urlencode, quote_plus
 from .errors import ValidationError, RequestError
 from .hmac import get_hmac_auth_headers
 
+DEFAULT_PATHS = {
+	'appointment': '/v3/appointments',
+	'attachment': '/v3/attachments',
+	'brand': '/v3/brands',
+	'customer': '/v3/customers',
+	'job': '/v3/jobs',
+	'organization': '/v3/organizations',
+	'survey': '/v3/survey_responses',
+	'user': '/v3/users'
+}
 class Client:
 	"""
 	client connects to the Dispatch platform using your client credentials.
@@ -33,6 +43,8 @@ class Client:
 			'Accept': 'application/json'
 		})
 		self.__auth_mode = auth_mode
+
+		self.paths = DEFAULT_PATHS
 
 		if auth_mode == 'hmac':
 			self.__hmac_public_key = hmac_public_key
@@ -137,6 +149,9 @@ class Client:
 			raise UserWarning("Unexpected response body")
 		return json_resp
 
+	def path_for(self, record_type):
+		return self.paths[record_type]
+
 	def list(self, endpoint, query):
 		return self.__do_request('get', endpoint, query=query)
 	def get(self, endpoint, id):
@@ -155,7 +170,7 @@ class Client:
 		:param attrs: Dictionary of attributes for this appointment
 		:return: Appointment object
 		"""
-		return self.create('/v3/appointments', attrs)
+		return self.create(self.path_for('appointment'), attrs)
 
 	def update_appointment(self, id, attrs):
 		"""
@@ -165,7 +180,7 @@ class Client:
 		:param attrs: Dictionary of attributes to update
 		:return: Appointment object
 		"""
-		return self.update('/v3/appointments', id, attrs)
+		return self.update(self.path_for('appointment'), id, attrs)
 
 	def list_appointments(self, query):
 		"""
@@ -174,7 +189,7 @@ class Client:
 		:param query: Dictionary of query filters
 		:return: Array of appointments
 		"""
-		return self.list('/v3/appointments', query)
+		return self.list(self.path_for('appointment'), query)
 
 	def get_appointment(self, id):
 		"""
@@ -183,7 +198,7 @@ class Client:
 		:param id: ID of the appointment
 		:return: Appointment object
 		"""
-		return self.get('/v3/appointments', id)
+		return self.get(self.path_for('appointment'), id)
 
 	def add_note(self, job_id, text):
 		"""
@@ -198,7 +213,7 @@ class Client:
 			'entity_id': job_id,
 			'description': text,
 		}
-		return self.create('/v3/attachments', attrs)
+		return self.create(self.path_for('attachment'), attrs)
 
 	def upload_photo(self, path=None, fileobj=None):
 		"""
@@ -240,7 +255,7 @@ class Client:
 			'file_token': file_token
 		}
 
-		return self.create('/v3/attachments', attrs)
+		return self.create(self.path_for('attachment'), attrs)
 
 	def delete_attachment(self, id):
 		"""
@@ -248,7 +263,7 @@ class Client:
 
 		:param id: The ID of the attachment
 		"""
-		return self.delete('/v3/attachments', id)
+		return self.delete(self.path_for('attachment'), id)
 
 	def list_attachments(self, query):
 		"""
@@ -257,7 +272,7 @@ class Client:
 		:param query: Dictionary defining query filters.
 		:return: Array of attachments
 		"""
-		return self.list('/v3/attachments', query)
+		return self.list(self.path_for('attachment'), query)
 
 	def get_attachment(self, id):
 		"""
@@ -266,7 +281,7 @@ class Client:
 		:param id: ID of the attachment
 		:return: Attachment object
 		"""
-		return self.get('/v3/attachments', id)
+		return self.get(self.path_for('attachment'), id)
 
 	def create_brand(self, attrs={}):
 		"""
@@ -275,7 +290,7 @@ class Client:
 		:param attrs: Dictionary of attributes for this brand
 		:return: Brand object
 		"""
-		return self.create('/v3/brands', attrs)
+		return self.create(self.path_for('brand'), attrs)
 
 	def update_brand(self, id, attrs):
 		"""
@@ -285,7 +300,7 @@ class Client:
 		:param attrs: Dictionary of attributes to update
 		:return: Brand object
 		"""
-		return self.update('/v3/brands', id, attrs)
+		return self.update(self.path_for('brand'), id, attrs)
 
 	def list_brands(self, query):
 		"""
@@ -294,7 +309,7 @@ class Client:
 		:param query: Dictionary of query filters
 		:return: Array of brands
 		"""
-		return self.list('/v3/brands', query)
+		return self.list(self.path_for('brand'), query)
 
 	def get_brand(self, id):
 		"""
@@ -303,7 +318,7 @@ class Client:
 		:param id: ID of the brand
 		:return: Brand object
 		"""
-		return self.get('/v3/brands', id)
+		return self.get(self.path_for('brand'), id)
 
 	def upsert_customer(self, organization_id=None, attrs={}):
 		"""
@@ -315,7 +330,7 @@ class Client:
 		"""
 		if organization_id is not None:
 			attrs['organization_id'] = organization_id
-		return self.create('/v3/customers', attrs)
+		return self.create(self.path_for('customer'), attrs)
 
 	def update_customer(self, id, attrs):
 		"""
@@ -325,7 +340,7 @@ class Client:
 		:param attrs: Dictionary of attributes to update
 		:return: Customer object
 		"""
-		return self.update('/v3/customers', id, attrs)
+		return self.update(self.path_for('customer'), id, attrs)
 
 	def list_customers(self, query):
 		"""
@@ -334,7 +349,7 @@ class Client:
 		:param query: Dictionary of query filters
 		:return: Array of customers
 		"""
-		return self.list('/v3/customers', query)
+		return self.list(self.path_for('customer'), query)
 
 	def get_customer(self, id):
 		"""
@@ -343,7 +358,7 @@ class Client:
 		:param id: ID of the customer
 		:return: Customer object
 		"""
-		return self.get('/v3/customers', id)
+		return self.get(self.path_for('customer'), id)
 
 	def delete_customer(self, id):
 		"""
@@ -351,7 +366,7 @@ class Client:
 
 		:param id: ID of the customer
 		"""
-		return self.delete('/v3/customers', id)
+		return self.delete(self.path_for('customer'), id)
 
 	def create_job(self, organization_id=None, attrs={}):
 		"""
@@ -363,7 +378,7 @@ class Client:
 		"""
 		if organization_id is not None:
 			attrs['organization_id'] = organization_id
-		return self.create('/v3/jobs', attrs)
+		return self.create(self.path_for('job'), attrs)
 
 	def update_job(self, id, attrs):
 		"""
@@ -373,7 +388,7 @@ class Client:
 		:param attrs: Dictionary of attributes to update
 		:return: Job object
 		"""
-		return self.update('/v3/jobs', id, attrs)
+		return self.update(self.path_for('job'), id, attrs)
 
 	def list_jobs(self, query):
 		"""
@@ -383,7 +398,7 @@ class Client:
 		:return: Array of jobs
 		"""
 
-		return self.list('/v3/jobs', query)
+		return self.list(self.path_for('job'), query)
 
 	def get_job(self, id):
 		"""
@@ -392,7 +407,7 @@ class Client:
 		:param id: ID of the job
 		:return: Job object
 		"""
-		return self.get('/v3/jobs', id)
+		return self.get(self.path_for('job'), id)
 
 	def accept_job(self, job_id):
 		"""
@@ -400,7 +415,7 @@ class Client:
 
 		:param job_id: ID of the job to accept
 		"""
-		return self.__do_request('post', '/v3/jobs/{}/accept'.format(job_id))
+		return self.__do_request('post', self.path_for('job') + '/{}/accept'.format(job_id))
 
 	def reject_job(self, job_id):
 		"""
@@ -408,7 +423,7 @@ class Client:
 
 		:param job_id: ID of the job to reject
 		"""
-		return self.__do_request('post', '/v3/jobs/{}/reject'.format(job_id))
+		return self.__do_request('post', self.path_for('job') + '/{}/reject'.format(job_id))
 
 	def upsert_organization(self, attrs={}):
 		"""
@@ -417,7 +432,7 @@ class Client:
 		:param attrs: Dictionary of attributes for the organization
 		:return: Organization object
 		"""
-		return self.create('/v3/organizations', attrs)
+		return self.create(self.path_for('organization'), attrs)
 
 	def update_organization(self, id, attrs):
 		"""
@@ -427,7 +442,7 @@ class Client:
 		:param attrs: Dictionary of attributes to update
 		:return: Organization object
 		"""
-		return self.update('/v3/organizations', id, attrs)
+		return self.update(self.path_for('organization'), id, attrs)
 
 	def list_organizations(self, query):
 		"""
@@ -436,7 +451,7 @@ class Client:
 		:param query: Dictionary of query filters
 		:return: Array of organizations
 		"""
-		return self.list('/v3/organizations', query)
+		return self.list(self.path_for('organization'), query)
 
 	def get_organization(self, id):
 		"""
@@ -445,7 +460,7 @@ class Client:
 		:param id: ID of the organization
 		:return: Organization object
 		"""
-		return self.get('/v1/organizations', id)
+		return self.get(self.path_for('organization'), id)
 
 	def get_surveys_for_job(self, job_id):
 		"""
@@ -454,7 +469,7 @@ class Client:
 		:param job_id: ID of the job
 		:return: Array of surveys
 		"""
-		return self.list('/v3/survey_responses', {
+		return self.list(self.path_for('survey'), {
 			'job_id': job_id
 		})
 
@@ -467,7 +482,7 @@ class Client:
 		:param attrs: Dictionary of attributes for this user
 		:return: User object
 		"""
-		return self.create('/v3/users', attrs)
+		return self.create(self.path_for('user'), attrs)
 
 	def update_user(self, id, attrs):
 		"""
@@ -477,7 +492,7 @@ class Client:
 		:param attrs: Dictionary of attributes to update
 		:return: User object
 		"""
-		return self.update('/v3/users', id, attrs)
+		return self.update(self.path_for('user'), id, attrs)
 
 	def list_users(self, query):
 		"""
@@ -486,7 +501,7 @@ class Client:
 		:param query: Dictionary of query filters
 		:return: Array of users
 		"""
-		return self.list('/v3/users', query)
+		return self.list(self.path_for('user'), query)
 
 	def get_user(self, id):
 		"""
@@ -495,4 +510,4 @@ class Client:
 		:param id: ID of the user
 		:return: User object
 		"""
-		return self.get('/v3/users', id)
+		return self.get(self.path_for('user'), id)
