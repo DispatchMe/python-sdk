@@ -99,11 +99,8 @@ class Client:
 		# Special error type for validation errors
 		if response.status_code == 422:
 			body = response.json()
-			print(body)
 			raise ValidationError("Validation failed", body["errors"])
 
-		print(response.text)
-		print(response.status_code)
 		raise RequestError(response.reason, response.status_code)
 
 	def __do_request(self, method, uri, body=None, files=None, query=None, in_retry=False, parse_response=True):
@@ -122,14 +119,13 @@ class Client:
 
 		if self.__auth_mode is 'hmac':
 			headers = get_hmac_auth_headers(self.__hmac_public_key, self.__hmac_secret_key, 'application/json', payload, full_uri)
+			print(headers)
 		else:
 			headers = None
 
 		request_url = self.api_url + full_uri
 		resp = func(request_url, data=payload, files=files, headers=headers)
 
-		print(request_url)
-		print(headers)
 		# If we get a 401, grab a new bearer token and retry the request ONCE.
 		# This should only happen when a bearer token expires.
 		if resp.status_code is 401 and self.__auth_mode is 'bearer' and not in_retry:
@@ -152,6 +148,9 @@ class Client:
 	def path_for(self, record_type):
 		return self.paths[record_type]
 
+	def do_request(self, method, uri, query=None, body=None, parse_response=True):
+		return self.__do_request(method=method, uri=uri, query=query, body=body, parse_response=parse_response)
+		
 	def list(self, endpoint, query):
 		return self.__do_request('get', endpoint, query=query)
 	def get(self, endpoint, id):
@@ -368,6 +367,9 @@ class Client:
 		"""
 		return self.delete(self.path_for('customer'), id)
 
+	def job_factory(self, attrs={}):
+		return self.create(self.path_for('job') + '/factory', attrs)
+
 	def create_job(self, organization_id=None, attrs={}):
 		"""
 		Create a job
@@ -511,3 +513,4 @@ class Client:
 		:return: User object
 		"""
 		return self.get(self.path_for('user'), id)
+
