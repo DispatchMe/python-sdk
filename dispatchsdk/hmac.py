@@ -14,7 +14,7 @@ class HMACSignature(object):
 			'Content-Type': content_type,
 			'Date': date_str,
 			'Content-MD5': md5_of_body,
-			'Authorization': "APIAuth %s:%s" % (public_key, sha1_sig)
+			'Authorization': "APIAuth user-%s:%s" % (public_key, sha1_sig)
 		}
 
 	def md5_b64digest(self, payload=b''):
