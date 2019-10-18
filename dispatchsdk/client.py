@@ -120,7 +120,6 @@ class Client:
 
 		if self.__auth_mode is 'hmac':
 			headers = get_hmac_auth_headers(self.__hmac_public_key, self.__hmac_secret_key, 'application/json', payload, full_uri, self.__hmac_auth_type)
-			print(headers)
 		else:
 			headers = None
 
