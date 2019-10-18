@@ -4,7 +4,7 @@ import os.path as path
 
 install_requires = ['requests']
 cwd = path.dirname(__file__)
-version = '0.1.4'
+version = '0.2.9'
 
 setup(
     name='dispatchsdk',

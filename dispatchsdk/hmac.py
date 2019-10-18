@@ -4,8 +4,12 @@ import base64
 import datetime
 class HMACSignature(object):
 
-	def __init__(self, secret):
+	def __init__(self, secret, auth_type="user"):
 		self.secret = secret
+		valid_auth_types = ["user", "integration"]
+		if auth_type not in valid_auth_types:
+			raise ValueError("%s is not a valid auth type: (%s)" % valid_auth_types)
+		self.auth_type = auth_type
 
 	def get_headers(self, public_key, content_type, md5_of_body, url_path, date_str):
 		content_to_sign = ','.join([content_type, md5_of_body, url_path, date_str]).encode('utf-8')
@@ -14,7 +18,7 @@ class HMACSignature(object):
 			'Content-Type': content_type,
 			'Date': date_str,
 			'Content-MD5': md5_of_body,
-			'Authorization': "APIAuth user-%s:%s" % (public_key, sha1_sig)
+			'Authorization': "APIAuth %s-%s:%s" % (self.auth_type, public_key, sha1_sig)
 		}
 
 	def md5_b64digest(self, payload=b''):
@@ -37,8 +41,8 @@ class HMACSignature(object):
 	def format_date(self, timestamp):
 		return timestamp.strftime('%a, %d %b %Y %H:%M:%S GMT')
 
-def get_hmac_auth_headers(public_key, secret_key, content_type, body, url_path):
-	hmac_sig = HMACSignature(bytes(secret_key, 'utf-8'))
+def get_hmac_auth_headers(public_key, secret_key, content_type, body, url_path, auth_type="user"):
+	hmac_sig = HMACSignature(bytes(secret_key, 'utf-8'), auth_type)
 	md5 = hmac_sig.md5_b64digest(b'' if body is None else bytes(body, 'utf-8'))
 	date_str = hmac_sig.format_date(datetime.datetime.utcnow())
 	return hmac_sig.get_headers(content_type=content_type, md5_of_body=md5,
