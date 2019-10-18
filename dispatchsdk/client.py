@@ -19,7 +19,7 @@ class Client:
 	"""
 	client connects to the Dispatch platform using your client credentials.
 	"""
-	def __init__(self, client_id='', client_secret='', username=None, password=None, api_url="https://api.dispatch.me", auth_mode='bearer', hmac_public_key=None, hmac_secret_key=None):
+	def __init__(self, client_id='', client_secret='', username=None, password=None, api_url="https://api.dispatch.me", auth_mode='bearer', hmac_public_key=None, hmac_secret_key=None, hmac_auth_type="user"):
 		"""
 		Construct a new client
 
@@ -49,6 +49,7 @@ class Client:
 		if auth_mode == 'hmac':
 			self.__hmac_public_key = hmac_public_key
 			self.__hmac_secret_key = hmac_secret_key
+			self.__hmac_auth_type = hmac_auth_type
 		else:
 			self.__bearer_token = None
 
@@ -59,7 +60,7 @@ class Client:
 			full_query = {}
 			for k in query:
 				full_query['filter[{}]'.format(k)] = query[k]
-			full = full + '?' + urlencode(full_query, quote_via=quote_plus)
+			full = full + '?' + urlencode(full_query)
 		return full
 
 	def __load_bearer_token(self):
@@ -118,13 +119,15 @@ class Client:
 		func = getattr(self.__session, method)
 
 		if self.__auth_mode is 'hmac':
-			headers = get_hmac_auth_headers(self.__hmac_public_key, self.__hmac_secret_key, 'application/json', payload, full_uri)
+			headers = get_hmac_auth_headers(self.__hmac_public_key, self.__hmac_secret_key, 'application/json', payload, full_uri, self.__hmac_auth_type)
 			print(headers)
 		else:
 			headers = None
 
 		request_url = self.api_url + full_uri
+		print(request_url)
 		resp = func(request_url, data=payload, files=files, headers=headers)
+		print("%s %s" % (resp.status_code, resp.content))
 
 		# If we get a 401, grab a new bearer token and retry the request ONCE.
 		# This should only happen when a bearer token expires.
